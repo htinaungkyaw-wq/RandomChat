@@ -201,6 +201,13 @@ body{font-family:'Nunito',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;bac
 #call .cb button.sl::after{content:"";position:absolute;left:50%;top:50%;width:34px;height:3px;border-radius:2px;background:currentColor;transform:translate(-50%,-50%) rotate(-45deg)}
 #cc .cb button,#inc .cb button{font-size:1.3rem}
 @media (pointer:coarse){#cShareW{display:none}}
+#addBar{display:flex;align-items:center;gap:10px;background:var(--card);padding:8px 14px;border-bottom:1px solid var(--line);font-size:.88rem;font-weight:700}
+#addBar span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#addBar button{border:0;border-radius:999px;padding:8px 14px;background:var(--green);color:#fff;font:800 .82rem 'Nunito',sans-serif;cursor:pointer;flex:none}
+#prog{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(88%,360px);background:#111b21;color:#fff;border-radius:14px;padding:12px 16px;z-index:95;box-shadow:0 8px 28px rgba(0,0,0,.4)}
+#prog .pl{display:flex;justify-content:space-between;font-weight:700;font-size:.9rem;margin-bottom:8px}
+#prog .pbr{height:8px;border-radius:99px;background:rgba(255,255,255,.18);overflow:hidden}
+#prog .pbr i{display:block;height:100%;width:0;background:linear-gradient(90deg,#25d366,#00a884);border-radius:99px;transition:width .2s ease}
 @media (max-width:800px){#side{width:100%;border:0}#main{display:none}#app.chatting #side{display:none}#app.chatting #main{display:flex}}
 @media (min-width:801px){#back{display:none}}
 </style>
@@ -275,6 +282,7 @@ body{font-family:'Nunito',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;bac
     <div id="empty">Select a chat to start messaging</div>
     <div id="room" class="hidden">
       <header class="top"><button class="ic" id="back">←</button><div class="avatar" id="cAv"></div><div class="who"><b id="cName"></b><small id="cUser"></small></div><button class="ic" id="callBtn" aria-label="Call"><i class="ico ph" style="width:22px;height:22px"></i></button></header>
+      <div id="addBar" class="hidden"><span id="addTxt"></span><button id="addBack">Add contact</button></div>
       <div id="pin" class="hidden"></div>
       <div class="chat" id="chat"></div>
       <div id="reply" class="hidden"></div>
@@ -339,6 +347,7 @@ body{font-family:'Nunito',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;bac
 </div>
 <div id="ctx" class="hidden"></div>
 <div id="toast" class="hidden"></div>
+<div id="prog" class="hidden"><div class="pl"><span id="progT"></span><b id="progP">0%</b></div><div class="pbr"><i id="progB"></i></div></div>
 
 <div id="fwd" class="ov hidden"><div class="sheet"><div class="shead"><b>Forward to…</b><button class="ic" id="fwdX">✕</button></div><div id="fwdList"></div></div></div>
 
@@ -541,6 +550,10 @@ $("forgot").onclick = async () => {
 
 /* ================= Chat app (Supabase) ================= */
 let me = null, myP = null, contacts = [], last = {}, cur = null, msgs = [];
+let strangers = [];
+const chatPeers = () => [...contacts, ...strangers];
+const rmSet = () => { try { return new Set(JSON.parse(localStorage.getItem("rc_rm") || "[]")); } catch (e) { return new Set(); } };
+const rmSave = x => { try { localStorage.setItem("rc_rm", JSON.stringify([...x])); } catch (e) {} };
 let stories = {}, myLikes = new Set(), seenS = new Set();
 try { seenS = new Set(JSON.parse(localStorage.getItem("rc_seen") || "[]")); } catch (e) {}
 let tch = null, tTimer = null, lastTyp = 0, typing = false;
@@ -559,10 +572,16 @@ function setAv(el, p) {
 }
 let tt; function toast(t, sticky) { const e = $("toast"); e.textContent = t; e.classList.remove("hidden"); clearTimeout(tt); if (!sticky) tt = setTimeout(() => e.classList.add("hidden"), 2200); }
 
+let progTm = null;
+function prog(label, pct) { clearTimeout(progTm); $("prog").classList.remove("hidden"); const v = Math.max(0, Math.min(100, Math.round(pct))); $("progT").textContent = label; $("progP").textContent = v + "%"; $("progB").style.width = v + "%"; }
+function progDone(label) { prog(label || "Done", 100); progTm = setTimeout(() => $("prog").classList.add("hidden"), 1400); }
+function progFail() { clearTimeout(progTm); $("prog").classList.add("hidden"); }
+
 async function startApp(user) {
   if (me && me.uid === user.uid) return;
   if (!sb) { alert("Set SUPABASE_URL and SUPABASE_ANON_KEY in index.html"); return; }
   me = user;
+  const conP = loadContacts();
   let { data } = await sb.from("profiles").select("*").eq("uid", user.uid).maybeSingle();
   if (!data) {
     data = { uid: user.uid, name: user.displayName || user.email.split("@")[0], email: user.email, photo_url: user.photoURL || null };
@@ -570,7 +589,7 @@ async function startApp(user) {
   }
   myP = data;
   beat(); hb = setInterval(beat, 20000);
-  await loadContacts();
+  await conP; renderStories();
   chan = sb.channel("msgs").on("postgres_changes", { event: "*", schema: "public", table: "messages" }, onRT).subscribe();
   inbox = sb.channel("call-" + me.uid).on("broadcast", { event: "sig" }, ({ payload }) => onSig(payload)).subscribe();
   askPerms(); getIce();
@@ -588,7 +607,12 @@ async function loadContacts() {
     sb.from("messages").select("*").or(`sender.eq.${me.uid},receiver.eq.${me.uid}`).order("created_at", { ascending: false }).limit(300)
   ]);
   const ids = (c || []).map(x => x.contact);
-  contacts = ids.length ? (await sb.from("profiles").select("*").in("uid", ids)).data || [] : [];
+  const rm = rmSet(), sIds = [...new Set((m || []).filter(x => x.receiver == me.uid && !ids.includes(x.sender) && !rm.has(x.sender)).map(x => x.sender))];
+  const [cp, sp] = await Promise.all([
+    ids.length ? sb.from("profiles").select("*").in("uid", ids) : null,
+    sIds.length ? sb.from("profiles").select("*").in("uid", sIds) : null
+  ]);
+  contacts = (cp && cp.data) || []; strangers = (sp && sp.data) || [];
   last = {};
   (m || []).forEach(x => { const p = x.sender == me.uid ? x.receiver : x.sender; if (!last[p] && !(x.hidden_for || []).includes(me.uid)) last[p] = x; });
   renderList(); loadStories();
@@ -596,7 +620,7 @@ async function loadContacts() {
 const preview = m => !m ? "No messages yet" : (m.sender == me.uid ? "You: " : "") + (m.type == "image" ? "🖼 Photo" : m.type == "video" ? "🎬 Video" : m.body);
 function renderList() {
   const q = $("search").value.toLowerCase(), L = $("list"); L.innerHTML = "";
-  const arr = contacts.filter(p => (p.name + (p.username || "")).toLowerCase().includes(q))
+  const arr = chatPeers().filter(p => (p.name + (p.username || "")).toLowerCase().includes(q))
     .sort((a, b) => new Date(last[b.uid]?.created_at || 0) - new Date(last[a.uid]?.created_at || 0));
   if (!arr.length) { L.innerHTML = '<p class="hint">No contacts yet.<br>Open ☰ Settings → Add contact<br>and enter a username.</p>'; return; }
   arr.forEach(p => {
@@ -611,7 +635,7 @@ $("back").onclick = () => { $("app").classList.remove("chatting"); cur = null; r
 async function openChat(p) {
   cur = p; replyTo = editing = null; selMode = false; selected.clear(); $("txt").value = "";
   $("app").classList.add("chatting"); $("empty").classList.add("hidden"); $("room").classList.remove("hidden");
-  typing = false; setAv($("cAv"), p); $("cName").textContent = p.name; $("cUser").textContent = seenText(p); joinTyping();
+  typing = false; setAv($("cAv"), p); $("cName").textContent = p.name; $("cUser").textContent = seenText(p); joinTyping(); updAddBar();
   const a = me.uid, b = p.uid;
   const { data } = await sb.from("messages").select("*").or(`and(sender.eq.${a},receiver.eq.${b}),and(sender.eq.${b},receiver.eq.${a})`).order("created_at", { ascending: false }).limit(150);
   msgs = (data || []).reverse(); renderMsgs(true); renderList(); markRead();
@@ -626,6 +650,12 @@ function onRT(e) {
     if (m.sender == cur.uid && typing) { typing = false; clearTimeout(tTimer); $("cUser").textContent = seenText(cur); }
   }
   const p = m.sender == me.uid ? m.receiver : m.sender;
+  if (e.eventType == "INSERT" && m.sender != me.uid && !peerOf(p)) {
+    const rs = rmSet(); rs.delete(p); rmSave(rs);
+    sb.from("profiles").select("*").eq("uid", p).maybeSingle().then(({ data }) => {
+      if (data && !peerOf(p)) { strangers.push(data); renderList(); if (!cur || cur.uid != p) toast("New message from " + data.name); updAddBar(); }
+    });
+  }
   if (!last[p] || new Date(m.created_at) >= new Date(last[p].created_at)) last[p] = m;
   renderList();
 }
@@ -635,7 +665,7 @@ async function ins(row) {
 }
 
 function renderMsgs(sc) {
-  const C = $("chat"), keep = C.scrollHeight - C.scrollTop - C.clientHeight < 80; C.innerHTML = "";
+  const C = $("chat"), keep = C.scrollHeight - C.scrollTop - C.clientHeight < 80; C.innerHTML = ""; const frag = document.createDocumentFragment();
   msgs.filter(m => !(m.hidden_for || []).includes(me.uid)).forEach(m => {
     const mine = m.sender == me.uid, d = document.createElement("div");
     d.className = "b " + (mine ? "out" : "in") + (selected.has(m.id) ? " sel" : ""); d.dataset.id = m.id;
@@ -650,12 +680,25 @@ function renderMsgs(sc) {
     let t; d.ontouchstart = e => { const q = e.touches[0]; t = setTimeout(() => ctx(m, q.clientX, q.clientY), 500); };
     d.ontouchend = d.ontouchmove = () => clearTimeout(t);
     d.onclick = () => { if (selMode) { selected.has(m.id) ? selected.delete(m.id) : selected.add(m.id); renderMsgs(); } };
-    C.appendChild(d);
+    frag.appendChild(d);
   });
+  C.appendChild(frag);
   if (sc || keep) C.scrollTop = C.scrollHeight;
   updBars();
 }
 
+function updAddBar() {
+  const isC = cur && contacts.some(c => c.uid == cur.uid);
+  $("addBar").classList.toggle("hidden", !cur || !!isC);
+  if (cur) $("addTxt").textContent = cur.name + " isn't in your contacts";
+}
+$("addBack").onclick = async () => {
+  if (!cur) return;
+  const { error } = await sb.from("contacts").upsert({ owner: me.uid, contact: cur.uid }, { onConflict: "owner,contact" });
+  if (error) return alert(error.message);
+  const rs = rmSet(); rs.delete(cur.uid); rmSave(rs); toast(cur.name + " added to contacts");
+  const u = cur.uid; await loadContacts(); cur = chatPeers().find(c => c.uid == u) || cur; updAddBar(); renderContactMgr();
+};
 function updBars() {
   const rb = $("reply"); rb.classList.toggle("hidden", !(replyTo || editing));
   rb.innerHTML = editing ? "<b>Editing</b> " + esc(editing.body || "") + "<button>✕</button>" : replyTo ? "<b>Reply</b> " + esc(replyTo.type == "text" ? replyTo.body : "📎 " + replyTo.type) + "<button>✕</button>" : "";
@@ -742,14 +785,23 @@ async function send() {
     $("txt").value = ""; replyTo = null; updBars();
   } catch (e) { toast(e.message); }
 }
-async function upload(b, ext, dir) {
+async function upload(b, ext, dir, onP) {
   const p = dir + "/" + me.uid + "/" + Date.now() + "." + ext;
-  const { error } = await sb.storage.from(BUCKET).upload(p, b, { contentType: b.type || undefined, upsert: true });
-  if (error) throw error;
+  // direct upload so we can show real progress; falls back to the SDK if it is refused
+  const ok = await new Promise(res => {
+    try {
+      const x = new XMLHttpRequest(); x.open("POST", SUPABASE_URL + "/storage/v1/object/" + BUCKET + "/" + p);
+      x.setRequestHeader("apikey", SUPABASE_ANON_KEY); x.setRequestHeader("x-upsert", "true"); x.setRequestHeader("Content-Type", b.type || "application/octet-stream");
+      x.upload.onprogress = e => { if (e.lengthComputable && onP) onP(e.loaded / e.total); };
+      x.onload = () => res(x.status >= 200 && x.status < 300); x.onerror = () => res(false); x.send(b);
+    } catch (e) { res(false); }
+  });
+  if (!ok) { const { error } = await sb.storage.from(BUCKET).upload(p, b, { contentType: b.type || undefined, upsert: true }); if (error) throw error; }
+  if (onP) onP(1);
   return sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl;
 }
 /* video: max 60s, re-encoded to max 720p, keeps the source frame rate (30 or 60 fps) */
-async function to720(file) {
+async function to720(file, onP) {
   const v = document.createElement("video"); v.src = URL.createObjectURL(file); v.playsInline = true; v.preload = "auto";
   await new Promise((r, j) => { v.onloadedmetadata = r; v.onerror = () => j(new Error("Can't read this video.")); });
   if (v.duration > 60.5) throw new Error("Video must be 1 minute or shorter.");
@@ -762,7 +814,7 @@ async function to720(file) {
   rec.ondataavailable = e => parts.push(e.data);
   const stopped = new Promise(r => rec.onstop = r);
   rec.start(); await v.play();
-  const draw = () => { x.drawImage(v, 0, 0, w, h); if (!v.ended) (v.requestVideoFrameCallback ? v.requestVideoFrameCallback(draw) : requestAnimationFrame(draw)); };
+  const draw = () => { x.drawImage(v, 0, 0, w, h); if (onP && v.duration) onP(v.currentTime / v.duration); if (!v.ended) (v.requestVideoFrameCallback ? v.requestVideoFrameCallback(draw) : requestAnimationFrame(draw)); };
   draw(); await new Promise(r => v.onended = r); rec.stop(); await stopped; ac.close();
   return { blob: new Blob(parts, { type: mt.split(";")[0] }), ext: mt.startsWith("video/mp4") ? "mp4" : "webm" };
 }
@@ -770,13 +822,14 @@ $("file").onchange = async e => {
   const f = e.target.files[0]; e.target.value = ""; if (!f || !cur) return;
   try {
     let blob = f, ext = (f.name.split(".").pop() || "jpg").toLowerCase(), type = "image";
-    if (f.type.startsWith("video/")) { type = "video"; toast("Converting video to 720p… please wait", true); const r = await to720(f); blob = r.blob; ext = r.ext; }
+    if (f.type.startsWith("video/")) { type = "video"; prog("Preparing video…", 0); const r = await to720(f, x => prog("Preparing video…", x * 60)); blob = r.blob; ext = r.ext; }
     else if (!f.type.startsWith("image/")) return toast("Choose a photo or a video.");
-    toast("Uploading…", true);
-    const url = await upload(blob, ext, "chat");
+    const vd = type == "video", base = vd ? 60 : 0, span = vd ? 38 : 95;
+    prog("Uploading…", base);
+    const url = await upload(blob, ext, "chat", x => prog("Uploading…", base + x * span));
     await ins({ sender: me.uid, receiver: cur.uid, type, media_url: url, body: $("txt").value.trim() || null, reply_to: replyTo?.id || null });
-    $("txt").value = ""; replyTo = null; updBars(); toast("Sent");
-  } catch (err) { toast(err.message || "Upload failed"); }
+    $("txt").value = ""; replyTo = null; updBars(); progDone("Sent");
+  } catch (err) { progFail(); toast(err.message || "Upload failed"); }
 };
 
 /* ---- stories (max 3 per user, photo or video up to 1 min) ---- */
@@ -791,8 +844,9 @@ async function loadStories() {
   myLikes = new Set(sid.length ? ((await sb.from("story_likes").select("story_id").eq("uid", me.uid).in("story_id", sid)).data || []).map(x => x.story_id) : []);
   renderStories(); renderStoryMgr();
 }
-setInterval(() => { if (me) loadStories(); }, 60000);
+setInterval(() => { if (me && !document.hidden) loadStories(); }, 60000);
 function renderStories() {
+  if (!myP) return;
   const B = $("stories"); B.innerHTML = "";
   const item = (p, label, own) => {
     const L = stories[p.uid] || [], unseen = L.some(x => !seenS.has(x.id));
@@ -900,13 +954,14 @@ $("scNext").onclick = async () => {
   const btn = $("scNext"); btn.disabled = true;
   try {
     let blob = scF, ext = (scF.name.split(".").pop() || "jpg").toLowerCase(), type = "image";
-    if (scF.type.startsWith("video/")) { type = "video"; toast("Converting video to 720p… please wait", true); const r = await to720(scF); blob = r.blob; ext = r.ext; }
-    toast("Posting story…", true);
-    const url = await upload(blob, ext, "stories");
+    if (scF.type.startsWith("video/")) { type = "video"; prog("Preparing video…", 0); const r = await to720(scF, x => prog("Preparing video…", x * 60)); blob = r.blob; ext = r.ext; }
+    const vd = type == "video", base = vd ? 60 : 0, span = vd ? 38 : 95;
+    prog("Posting story…", base);
+    const url = await upload(blob, ext, "stories", x => prog("Posting story…", base + x * span));
     const { error } = await sb.from("stories").insert({ owner: me.uid, type, media_url: url, caption: $("scCap").value.trim() || null });
-    if (error) alert(error.message.includes("limited") ? "you are limited with 3 post" : error.message); else toast("Story posted");
+    if (error) { progFail(); alert(error.message.includes("limited") ? "you are limited with 3 post" : error.message); } else progDone("Story posted");
     closeSc(); await loadStories();
-  } catch (err) { toast(err.message || "Failed"); }
+  } catch (err) { progFail(); toast(err.message || "Failed"); }
   btn.disabled = false;
 };
 
@@ -928,7 +983,7 @@ async function getIce() {
   } catch (e) {}
   return ICEC || ICE;
 }
-const peerOf = uid => contacts.find(c => c.uid == uid);
+const peerOf = uid => chatPeers().find(c => c.uid == uid);
 let rAC = null, rT = null;
 function ring(kind) {
   clearInterval(rT); rT = null; if (!kind) return;
@@ -1142,10 +1197,11 @@ async function beat() {
   refreshPresence();
 }
 async function refreshPresence() {
-  if (!me || !contacts.length) return;
-  const { data } = await sb.from("profiles").select("*").in("uid", contacts.map(c => c.uid));
-  if (!data) return; contacts = data;
-  if (cur) { cur = contacts.find(c => c.uid == cur.uid) || cur; if (!typing) $("cUser").textContent = seenText(cur); }
+  if (!me || document.hidden) return; const all = chatPeers(); if (!all.length) return;
+  const { data } = await sb.from("profiles").select("*").in("uid", all.map(c => c.uid));
+  if (!data) return;
+  const f = c => data.find(d => d.uid == c.uid) || c; contacts = contacts.map(f); strangers = strangers.map(f);
+  if (cur) { cur = chatPeers().find(c => c.uid == cur.uid) || cur; if (!typing) $("cUser").textContent = seenText(cur); }
 }
 setInterval(() => { if (cur && !typing) $("cUser").textContent = seenText(cur); }, 15000);
 function seenText(p) {
@@ -1181,6 +1237,7 @@ function renderContactMgr() {
       const { error } = await sb.from("contacts").delete().eq("owner", me.uid).eq("contact", p.uid);
       if (error) return alert(error.message);
       if (cur && cur.uid == p.uid) { cur = null; $("room").classList.add("hidden"); $("empty").classList.remove("hidden"); $("app").classList.remove("chatting"); }
+      { const rs = rmSet(); rs.add(p.uid); rmSave(rs); }
       toast("Contact removed"); await loadContacts(); renderContactMgr();
     };
     L.appendChild(d);
@@ -1201,23 +1258,27 @@ $("saveP").onclick = async () => {
   const name = $("pName").value.trim(), bio = $("pBio").value.trim(), un = $("pUser").value.trim().replace(/^@/, "").toLowerCase();
   if (!name) return alert("Enter your name.");
   if (un && !/^[a-z0-9_]{3,20}$/.test(un)) return alert("Username: 3–20 letters, numbers or _ only.");
+  prog("Saving profile…", 10);
   if (un) {
     const { data } = await sb.from("profiles").select("uid").eq("username", un).neq("uid", me.uid).maybeSingle();
-    if (data) return alert("that username is already exists");
+    if (data) { progFail(); return alert("that username is already exists"); }
   }
+  prog("Saving profile…", 30);
   const row = { name, bio, username: un || null };
-  try { if (pendingPhoto) row.photo_url = await upload(pendingPhoto, pendingPhoto.name.split(".").pop(), "avatars"); }
-  catch (e) { return alert(e.message); }
+  try { if (pendingPhoto) row.photo_url = await upload(pendingPhoto, pendingPhoto.name.split(".").pop(), "avatars", x => prog("Uploading photo…", 30 + x * 55)); }
+  catch (e) { progFail(); return alert(e.message); }
+  prog("Saving profile…", 90);
   const { error } = await sb.from("profiles").update(row).eq("uid", me.uid);
-  if (error) return alert(error.code == "23505" ? "that username is already exists" : error.message);
-  Object.assign(myP, row); pendingPhoto = null; toast("Profile saved");
+  if (error) { progFail(); return alert(error.code == "23505" ? "that username is already exists" : error.message); }
+  Object.assign(myP, row); pendingPhoto = null; progDone("Profile saved");
 };
 $("addC").onclick = async () => {
   const un = $("cUserIn").value.trim().replace(/^@/, "").toLowerCase(); if (!un) return;
   const { data: p } = await sb.from("profiles").select("uid,name").eq("username", un).maybeSingle();
   if (!p) return alert("No user found with that username.");
   if (p.uid == me.uid) return alert("That's your own username.");
-  const { error } = await sb.from("contacts").upsert([{ owner: me.uid, contact: p.uid }, { owner: p.uid, contact: me.uid }], { onConflict: "owner,contact" });
+  const { error } = await sb.from("contacts").upsert({ owner: me.uid, contact: p.uid }, { onConflict: "owner,contact" });
+  { const rs = rmSet(); rs.delete(p.uid); rmSave(rs); }
   if (error) return alert(error.message);
   $("cUserIn").value = ""; toast(p.name + " added"); await loadContacts(); renderContactMgr();
 };
