@@ -5,9 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#00a884">
 <title>RandomChat</title>
+<link rel="preconnect" href="https://aqtllzwqcrbnkrzihdcw.supabase.co" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
 :root{
   --green:#00a884; --green-d:#008069; --green-dd:#005c4b; --bg:#f0f2f5; --card:#fff;
@@ -171,8 +176,31 @@ body{font-family:'Nunito',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;bac
 .cb button{width:54px;height:54px;border-radius:50%;border:0;font-size:1.3rem;cursor:pointer;background:#e6e6e6;color:#111;display:grid;place-items:center}
 .cb button.dk{background:#3a3f45;color:#fff}.cb button.bl{background:var(--green);color:#fff}.cb button.rd{background:#d9453f;color:#fff}
 .cb button.rd span{display:inline-block;transform:rotate(135deg)}
-#rv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;z-index:1}#rv.vh{visibility:hidden}
-#lv{position:absolute;right:12px;top:calc(env(safe-area-inset-top) + 12px);width:104px;height:140px;object-fit:cover;border-radius:12px;z-index:3;background:#000;transform:scaleX(-1)}#lv.vh{visibility:hidden}
+.ico{display:inline-block;width:26px;height:26px;background:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
+.ico.ph{-webkit-mask-image:url(data:image/png;base64,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);mask-image:url(data:image/png;base64,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)}
+.ico.vd{-webkit-mask-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAEkElEQVR42u3dS2hcVRzH8c+9k1Rb8bVQfCyE+kKX1kdRkOpCfOxExCel2o24URREKKgLWwRFF1UUFAWt6MaNiCIquKgW6msjLpQERIr4QGkl1TYz18Wc69xOkskkk9wxM/8fXCYzk8zN/X/P+f/PPcn5nawoCqHhKY8QBIAAEAoAASAUAAJAKAAEgFAACACh+jTRx/dkCVQ2YtdeoJUeh6asx2RchgZmx6ARNocFYiEAjfRLwTpcgkuxESfjCH5dQ3AaOA3H4yCm8RW+xMw81zy0FFSmmyZOx324AxeMaOufxtt4Hj+lay/q7A3VHpBVcuNW7MRZldeaIxb8RuWaf8fj2N0Vh9oAVFv+btyf3p9Nr4/qaKmVjjITvI57K6m1qANANfiv4J4xCPx8I6JZTOId3JKufdVHSXkl+I+k4B9NLWKc7hGyFPwjuBm7UkzyunrAxfhmhMf8S+kJzdQAr8Jnqz06Kqv+E+mkxRgHv+wJ5fXvXOE60Kj0qP++zoqiuAhfp/H+OAe/uzjnuBz7B+wFvUZVWY5bcVw6aagDQCrGBmiY1fuKbfgIX+BFnINiAtcOeJJRTUVSHbDM1j+RRlYb8BLuqry3CTdiS1YUxQGcGfl/TjHOcADnp+mKbAn1oAz+eXgTl6XnZY2ZTSn/rRynRg9YUCfhxCX2nHIC8wbsrQR/olJ8JxPMK8bpZmvQdNRvvm/iIbynPZ/WNP+0f4Y8x591zn2sMf2Vjn5STkt7tvVVPK3z94bGYj84E3FesAb8bfEp9zLfb8QebE7PG/30nnG+612J9JOnYF+X8v3mSr7vK66R/webRWjhAXyAM3rk+wCwSsHfhWf7zfcBYOXSUhnsO3WmrPPlkgwtH8ThQetoABg8FQ33A0IBIACEAkAACAWAABAKAAEgFAACQCgABIBQAAgAoQAQAEIBIACEAkAACAWAABAKAAEgFABWUq0AMDwVWG9AP4kAsLzAl/4ae3T+ObcVAOpNPTkexYOOtfsJADVDeA7X42fL8NjLxerIxdJNsQiECXyovap+n86ivaJfABsiznNULrhYr72ivZfKRXlTuAav6TjPtPoBcErXSUMdnZAOfUDItZe1bsPD/daFXLik9JOG+q0JpVXBM7gJv/SoCwVaOf5Y4onGSQdxaImwyqWq76e6sL9SF5oJ1NEEa1+O7wPAgne405bulFKtCz9gC95wrFnHOvyIHTk+CQALpp296bGxjM8o68IM7k614WMdw6arMRWWZb3H+LVYln2Hd3WMhMZdpV3lpyn4ucFcE8t7iflM+4qwrVy4iF6Jz9VgW5njW+wwHnb1vVSa1j5VR/CZa138so53clgX12RdXHX62K5t3l1aF8+O+I1aS8dMb1LbvPu2ynu1mHdXq3U5r70VT+Lsrtw4Suq2r39Mex+BodjXVyF0b+BwOy4c0R4wpb2Bwwv+Bxs4dLeOssVPahuNbsK52luY/IPf1lDBznW2MDmUAl9uYXJ4nms2bADEJj5DB9CdlmIbqyEBCK1ybgwFgAAQCgABIBQAAkAoAASAUAAIAKGa9C8Yq0U5GOkFHQAAAABJRU5ErkJggg==);mask-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAEkElEQVR42u3dS2hcVRzH8c+9k1Rb8bVQfCyE+kKX1kdRkOpCfOxExCel2o24URREKKgLWwRFF1UUFAWt6MaNiCIquKgW6msjLpQERIr4QGkl1TYz18Wc69xOkskkk9wxM/8fXCYzk8zN/X/P+f/PPcn5nawoCqHhKY8QBIAAEAoAASAUAAJAKAAEgFAACACh+jTRx/dkCVQ2YtdeoJUeh6asx2RchgZmx6ARNocFYiEAjfRLwTpcgkuxESfjCH5dQ3AaOA3H4yCm8RW+xMw81zy0FFSmmyZOx324AxeMaOufxtt4Hj+lay/q7A3VHpBVcuNW7MRZldeaIxb8RuWaf8fj2N0Vh9oAVFv+btyf3p9Nr4/qaKmVjjITvI57K6m1qANANfiv4J4xCPx8I6JZTOId3JKufdVHSXkl+I+k4B9NLWKc7hGyFPwjuBm7UkzyunrAxfhmhMf8S+kJzdQAr8Jnqz06Kqv+E+mkxRgHv+wJ5fXvXOE60Kj0qP++zoqiuAhfp/H+OAe/uzjnuBz7B+wFvUZVWY5bcVw6aagDQCrGBmiY1fuKbfgIX+BFnINiAtcOeJJRTUVSHbDM1j+RRlYb8BLuqry3CTdiS1YUxQGcGfl/TjHOcADnp+mKbAn1oAz+eXgTl6XnZY2ZTSn/rRynRg9YUCfhxCX2nHIC8wbsrQR/olJ8JxPMK8bpZmvQdNRvvm/iIbynPZ/WNP+0f4Y8x591zn2sMf2Vjn5STkt7tvVVPK3z94bGYj84E3FesAb8bfEp9zLfb8QebE7PG/30nnG+612J9JOnYF+X8v3mSr7vK66R/webRWjhAXyAM3rk+wCwSsHfhWf7zfcBYOXSUhnsO3WmrPPlkgwtH8ThQetoABg8FQ33A0IBIACEAkAACAWAABAKAAEgFAACQCgABIBQAAgAoQAQAEIBIACEAkAACAWAABAKAAEgFABWUq0AMDwVWG9AP4kAsLzAl/4ae3T+ObcVAOpNPTkexYOOtfsJADVDeA7X42fL8NjLxerIxdJNsQiECXyovap+n86ivaJfABsiznNULrhYr72ivZfKRXlTuAav6TjPtPoBcErXSUMdnZAOfUDItZe1bsPD/daFXLik9JOG+q0JpVXBM7gJv/SoCwVaOf5Y4onGSQdxaImwyqWq76e6sL9SF5oJ1NEEa1+O7wPAgne405bulFKtCz9gC95wrFnHOvyIHTk+CQALpp296bGxjM8o68IM7k614WMdw6arMRWWZb3H+LVYln2Hd3WMhMZdpV3lpyn4ucFcE8t7iflM+4qwrVy4iF6Jz9VgW5njW+wwHnb1vVSa1j5VR/CZa138so53clgX12RdXHX62K5t3l1aF8+O+I1aS8dMb1LbvPu2ynu1mHdXq3U5r70VT+Lsrtw4Suq2r39Mex+BodjXVyF0b+BwOy4c0R4wpb2Bwwv+Bxs4dLeOssVPahuNbsK52luY/IPf1lDBznW2MDmUAl9uYXJ4nms2bADEJj5DB9CdlmIbqyEBCK1ybgwFgAAQCgABIBQAAkAoAASAUAAIAKGa9C8Yq0U5GOkFHQAAAABJRU5ErkJggg==)}
+#rv,#lv{position:absolute;object-fit:cover;background:#000}
+#rv{inset:0;width:100%;height:100%;z-index:1}#rv.vh{opacity:0}
+#lv{right:12px;bottom:calc(132px + env(safe-area-inset-bottom));width:30%;max-width:150px;aspect-ratio:9/16;border-radius:16px;z-index:3;box-shadow:0 4px 18px rgba(0,0,0,.5);cursor:pointer}
+#lv.mir{transform:scaleX(-1)}#lv.vh{opacity:0;pointer-events:none}
+#call.swap #lv{inset:0;right:0;bottom:0;width:100%;max-width:none;height:100%;aspect-ratio:auto;border-radius:0;z-index:1;box-shadow:none;cursor:default}
+#call.swap #rv{inset:auto;right:12px;bottom:calc(132px + env(safe-area-inset-bottom));width:30%;max-width:150px;height:auto;aspect-ratio:9/16;border-radius:16px;z-index:3;box-shadow:0 4px 18px rgba(0,0,0,.5);cursor:pointer}
+#call{background:#26282c;justify-content:flex-start}
+#call.mini{visibility:hidden;pointer-events:none}
+#callBar{position:fixed;top:0;left:0;right:0;z-index:85;background:var(--green);color:#fff;text-align:center;font-weight:800;font-size:.9rem;padding:calc(env(safe-area-inset-top) + 7px) 14px 7px;cursor:pointer}
+.ctop{position:absolute;top:0;left:0;right:0;z-index:4;padding:calc(env(safe-area-inset-top) + 8px) 12px 46px;background:linear-gradient(rgba(0,0,0,.5),transparent);text-align:center;pointer-events:none}
+.cbk{position:absolute;left:8px;top:calc(env(safe-area-inset-top) + 8px);background:none;border:0;color:#fff;font:700 1.1rem 'Nunito',sans-serif;cursor:pointer;padding:8px;pointer-events:auto}
+.ctt b{display:block;font-size:1.6rem;margin-top:44px;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+.ctt small{display:flex;gap:8px;align-items:center;justify-content:center;font-weight:700;margin-top:4px;font-size:.95rem}
+.sg{display:inline-flex;gap:2px;align-items:flex-end;height:12px}.sg i{width:3px;background:#fff;border-radius:1px}
+#cInfo{margin-top:170px;position:relative;z-index:2}#cInfo .avatar{margin:0 auto}
+#call .cbtns{z-index:4;gap:20px}#call .cb{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+#call .cb button{background:rgba(70,70,70,.72);color:#fff;position:relative;width:58px;height:58px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:1.35rem}
+#call .cb button.on{background:#fff;color:#222}
+#call .cb button.rd{background:#ff3b30;color:#fff}
+#call .cb button.sl::after{content:"";position:absolute;left:50%;top:50%;width:34px;height:3px;border-radius:2px;background:currentColor;transform:translate(-50%,-50%) rotate(-45deg)}
+#cc .cb button,#inc .cb button{font-size:1.3rem}
+@media (pointer:coarse){#cShareW{display:none}}
 @media (max-width:800px){#side{width:100%;border:0}#main{display:none}#app.chatting #side{display:none}#app.chatting #main{display:flex}}
 @media (min-width:801px){#back{display:none}}
 </style>
@@ -246,7 +274,7 @@ body{font-family:'Nunito',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;bac
   <section id="main">
     <div id="empty">Select a chat to start messaging</div>
     <div id="room" class="hidden">
-      <header class="top"><button class="ic" id="back">←</button><div class="avatar" id="cAv"></div><div class="who"><b id="cName"></b><small id="cUser"></small></div><button class="ic" id="callBtn" aria-label="Call"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg></button></header>
+      <header class="top"><button class="ic" id="back">←</button><div class="avatar" id="cAv"></div><div class="who"><b id="cName"></b><small id="cUser"></small></div><button class="ic" id="callBtn" aria-label="Call"><i class="ico ph" style="width:22px;height:22px"></i></button></header>
       <div id="pin" class="hidden"></div>
       <div class="chat" id="chat"></div>
       <div id="reply" class="hidden"></div>
@@ -268,33 +296,45 @@ body{font-family:'Nunito',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;bac
   <div id="scPrev"></div>
   <div class="scb"><input id="scCap" placeholder="Add a caption..." maxlength="150"><button id="scNext">NEXT ›</button></div>
 </div></div>
+<div id="perm" class="ov hidden"><div class="sheet pv">
+  <div class="vicon" style="margin:6px auto 14px">🎥</div>
+  <h2>Allow camera &amp; microphone</h2>
+  <p class="bio">RandomChat needs your camera and microphone so you can make voice and video calls. Your browser will ask for permission next.</p>
+  <button class="btn primary" id="permOk">Allow access</button>
+  <button class="link" id="permNo">Not now</button>
+</div></div>
 <div id="cc" class="callscr hidden">
   <div class="avatar" id="ccAv"></div>
   <div class="cinfo"><h2 id="ccNm"></h2><p>Click on the Camera icon if you want to start a video call.</p></div>
   <div class="cbtns">
-    <div class="cb"><button id="ccVid" class="bl">🎥</button>Start Video</div>
+    <div class="cb"><button id="ccVid" class="bl"><i class="ico vd"></i></button>Start Video</div>
     <div class="cb"><button id="ccX">✕</button>Cancel</div>
-    <div class="cb"><button id="ccVoice" class="bl">📞</button>Start Call</div>
+    <div class="cb"><button id="ccVoice" class="bl"><i class="ico ph"></i></button>Start Call</div>
   </div>
 </div>
 <div id="inc" class="callscr hidden">
   <div class="avatar" id="icAv"></div>
   <div class="cinfo"><h2 id="icNm"></h2><p id="icSt"></p></div>
   <div class="cbtns">
-    <div class="cb"><button id="icNo" class="rd"><span>📞</span></button>Decline</div>
-    <div class="cb"><button id="icYes" class="bl">📞</button>Accept</div>
+    <div class="cb"><button id="icNo" class="rd">✕</button>Decline</div>
+    <div class="cb"><button id="icYes" class="bl"><i class="ico ph"></i></button>Accept</div>
   </div>
 </div>
+<div id="callBar" class="hidden">Tap to return to call</div>
 <div id="call" class="callscr hidden">
   <video id="rv" autoplay playsinline class="vh"></video>
-  <video id="lv" autoplay playsinline muted class="vh"></video>
-  <div class="avatar" id="clAv"></div>
-  <div class="cinfo" id="cInfo"><h2 id="clNm"></h2><p id="clSt"></p></div>
+  <video id="lv" autoplay playsinline muted class="vh mir"></video>
+  <div class="ctop">
+    <button class="cbk" id="cBack">‹ Back</button>
+    <div class="ctt"><b id="clNm"></b><small><span class="sg"><i style="height:4px"></i><i style="height:7px"></i><i style="height:10px"></i><i style="height:12px"></i></span><span id="clSt"></span></small></div>
+  </div>
+  <div class="cinfo" id="cInfo"><div class="avatar" id="clAv"></div></div>
   <div class="cbtns">
-    <div class="cb"><button id="cShare">🖥</button>Share screen</div>
-    <div class="cb"><button id="cCam">🎥</button>Camera</div>
-    <div class="cb"><button id="cEnd" class="rd"><span>📞</span></button>End call</div>
-    <div class="cb"><button id="cMic" class="dk">🎤</button>Mute</div>
+    <div class="cb"><button id="cFlip" aria-label="Flip camera"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16"/><path d="M20 21v-5h-5"/></svg></button>flip</div>
+    <div class="cb"><button id="cCam" aria-label="Camera"><i class="ico vd" style="width:30px;height:30px"></i></button>video</div>
+    <div class="cb"><button id="cMic" aria-label="Mute"><svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11h-2z"/></svg></button>mute</div>
+    <div class="cb"><button id="cEnd" class="rd" aria-label="End call">✕</button>end</div>
+    <div class="cb" id="cShareW"><button id="cShare" aria-label="Share screen">🖥</button>share</div>
   </div>
 </div>
 <div id="ctx" class="hidden"></div>
@@ -332,11 +372,12 @@ body{font-family:'Nunito',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;bac
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 const SUPABASE_URL = "https://aqtllzwqcrbnkrzihdcw.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_xD8i0erSlyqJf1njGEkZvw_9Jxc43Y2";
+const METERED_APP = "videoweb";
+const METERED_API_KEY = "6aef7f1dcab9c70b07a89e7c";
 const BUCKET = "post-name";
 let sb = null;
 try { sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch (e) { console.warn("Set SUPABASE_URL and SUPABASE_ANON_KEY"); }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAnalytics, isSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
 import {
   getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   updateProfile, sendEmailVerification, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, signOut
@@ -353,7 +394,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-isSupported().then(ok => { if (ok) getAnalytics(app); }).catch(() => {});
+window.addEventListener("load", () => setTimeout(() => import("https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js").then(m => m.isSupported().then(ok => { if (ok) m.getAnalytics(app); })).catch(() => {}), 4000));
 const auth = getAuth(app);
 
 const $ = id => document.getElementById(id);
@@ -532,6 +573,7 @@ async function startApp(user) {
   await loadContacts();
   chan = sb.channel("msgs").on("postgres_changes", { event: "*", schema: "public", table: "messages" }, onRT).subscribe();
   inbox = sb.channel("call-" + me.uid).on("broadcast", { event: "sig" }, ({ payload }) => onSig(payload)).subscribe();
+  askPerms(); getIce();
 }
 function stopApp() {
   endCall("", false); dismissInc(); if (inbox) sb.removeChannel(inbox); inbox = null; Object.values(outCh).forEach(c => sb.removeChannel(c)); outCh = {};
@@ -541,10 +583,12 @@ function stopApp() {
 }
 
 async function loadContacts() {
-  const { data: c } = await sb.from("contacts").select("contact").eq("owner", me.uid);
+  const [{ data: c }, { data: m }] = await Promise.all([
+    sb.from("contacts").select("contact").eq("owner", me.uid),
+    sb.from("messages").select("*").or(`sender.eq.${me.uid},receiver.eq.${me.uid}`).order("created_at", { ascending: false }).limit(300)
+  ]);
   const ids = (c || []).map(x => x.contact);
   contacts = ids.length ? (await sb.from("profiles").select("*").in("uid", ids)).data || [] : [];
-  const { data: m } = await sb.from("messages").select("*").or(`sender.eq.${me.uid},receiver.eq.${me.uid}`).order("created_at", { ascending: false }).limit(300);
   last = {};
   (m || []).forEach(x => { const p = x.sender == me.uid ? x.receiver : x.sender; if (!last[p] && !(x.hidden_for || []).includes(me.uid)) last[p] = x; });
   renderList(); loadStories();
@@ -569,8 +613,8 @@ async function openChat(p) {
   $("app").classList.add("chatting"); $("empty").classList.add("hidden"); $("room").classList.remove("hidden");
   typing = false; setAv($("cAv"), p); $("cName").textContent = p.name; $("cUser").textContent = seenText(p); joinTyping();
   const a = me.uid, b = p.uid;
-  const { data } = await sb.from("messages").select("*").or(`and(sender.eq.${a},receiver.eq.${b}),and(sender.eq.${b},receiver.eq.${a})`).order("created_at");
-  msgs = data || []; renderMsgs(true); renderList(); markRead();
+  const { data } = await sb.from("messages").select("*").or(`and(sender.eq.${a},receiver.eq.${b}),and(sender.eq.${b},receiver.eq.${a})`).order("created_at", { ascending: false }).limit(150);
+  msgs = (data || []).reverse(); renderMsgs(true); renderList(); markRead();
 }
 
 function onRT(e) {
@@ -597,7 +641,7 @@ function renderMsgs(sc) {
     d.className = "b " + (mine ? "out" : "in") + (selected.has(m.id) ? " sel" : ""); d.dataset.id = m.id;
     let h = "";
     if (m.reply_to) { const r = msgs.find(x => x.id == m.reply_to); h += '<div class="rp">' + esc(r ? (r.type == "text" ? r.body : "📎 " + r.type) : "Deleted message") + "</div>"; }
-    if (m.type == "image") h += '<img src="' + esc(m.media_url) + '" alt="">';
+    if (m.type == "image") h += '<img src="' + esc(m.media_url) + '" alt="" loading="lazy" decoding="async">';
     if (m.type == "video") h += '<video src="' + esc(m.media_url) + '" controls playsinline preload="metadata"></video>';
     if (m.body) h += "<span>" + esc(m.body) + "</span>";
     h += "<time>" + (m.pinned ? "📌 " : "") + (m.edited ? "edited " : "") + fmtT(m.created_at) + (mine ? ' <b class="tk' + (m.read ? " r" : "") + '">' + (m.read ? "✓✓" : "✓") + "</b>" : "") + "</time>" + (m.reaction ? '<i class="rx">' + m.reaction + "</i>" : "");
@@ -766,7 +810,7 @@ function renderStories() {
 }
 function thumb(s, del) {
   const d = document.createElement("div"); d.className = "sth";
-  d.innerHTML = (s.type == "video" ? '<video src="' + esc(s.media_url) + '#t=0.1" muted preload="metadata"></video>' : '<img src="' + esc(s.media_url) + '" alt="">') + (del ? '<button class="sdel" aria-label="Delete story">🗑</button>' : "");
+  d.innerHTML = (s.type == "video" ? '<video src="' + esc(s.media_url) + '#t=0.1" muted preload="metadata"></video>' : '<img src="' + esc(s.media_url) + '" alt="" loading="lazy" decoding="async">') + (del ? '<button class="sdel" aria-label="Delete story">🗑</button>' : "");
   return d;
 }
 function renderStoryMgr() {
@@ -868,18 +912,50 @@ $("scNext").onclick = async () => {
 
 /* ---- voice & video calls (WebRTC, signaling via Supabase Realtime) ---- */
 // For calls across strict networks (some mobile data / corporate Wi-Fi) add a TURN server to iceServers.
-const ICE = { iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }] };
+const ICE = { iceServers: [
+  { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+  // free public TURN relay (helps on strict networks); for production use your own TURN server
+  { urls: ["turn:openrelay.metered.ca:80", "turn:openrelay.metered.ca:443", "turn:openrelay.metered.ca:443?transport=tcp"], username: "openrelayproject", credential: "openrelayproject" }
+] };
 let call = null, incoming = null, inbox = null, outCh = {}, incT = null, callTick = null;
+let ICEC = null, iceAt = 0;
+async function getIce() {
+  if (ICEC && Date.now() - iceAt < 20 * 60 * 1000) return ICEC;
+  try {
+    const r = await fetch("https://" + METERED_APP + ".metered.live/api/v1/turn/credentials?apiKey=" + METERED_API_KEY);
+    const a = await r.json();
+    if (Array.isArray(a) && a.length) { ICEC = { iceServers: a, iceCandidatePoolSize: 4, bundlePolicy: "max-bundle" }; iceAt = Date.now(); }
+  } catch (e) {}
+  return ICEC || ICE;
+}
 const peerOf = uid => contacts.find(c => c.uid == uid);
+let rAC = null, rT = null;
+function ring(kind) {
+  clearInterval(rT); rT = null; if (!kind) return;
+  try {
+    rAC = rAC || new (window.AudioContext || window.webkitAudioContext)(); rAC.resume();
+    const beep = () => { const o = rAC.createOscillator(), g = rAC.createGain(); o.frequency.value = kind == "in" ? 520 : 440; g.gain.value = .12; o.connect(g); g.connect(rAC.destination); o.start(); o.stop(rAC.currentTime + .45); };
+    beep(); rT = setInterval(beep, 1800);
+    if (kind == "in" && navigator.vibrate) navigator.vibrate([400, 200, 400]);
+  } catch (e) {}
+}
 async function sendSig(to, msg) {
   let c = outCh[to];
   if (!c) { c = outCh[to] = sb.channel("call-" + to); c.ready = new Promise(r => c.subscribe(st => { if (st === "SUBSCRIBED") r(); })); }
-  await c.ready;
+  await Promise.race([c.ready, new Promise(r => setTimeout(r, 5000))]);
   c.send({ type: "broadcast", event: "sig", payload: { ...msg, from: me.uid } });
 }
 async function getMedia(video) {
-  try { return await navigator.mediaDevices.getUserMedia({ audio: true, video: video ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false }); }
-  catch (e) { toast(video ? "Allow camera and microphone access." : "Allow microphone access."); return null; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast("Calls need a secure (https) connection."); return null; }
+  const get = v => navigator.mediaDevices.getUserMedia({ audio: true, video: v ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false });
+  try { return await get(video); }
+  catch (e) {
+    if (video && (e.name == "NotFoundError" || e.name == "OverconstrainedError" || e.name == "NotReadableError")) {
+      try { const a = await get(false); toast("Camera not available, continuing with audio only."); return a; } catch (e2) { e = e2; }
+    }
+    toast(e.name == "NotAllowedError" ? "Camera/microphone blocked. Tap the lock icon in the address bar and allow access." : "Could not start the microphone.");
+    return null;
+  }
 }
 $("callBtn").onclick = () => {
   if (!cur) return; if (call || incoming) return toast("You are already in a call");
@@ -890,34 +966,35 @@ $("ccVid").onclick = () => startCall(true);
 $("ccVoice").onclick = () => startCall(false);
 async function startCall(video) {
   $("cc").classList.add("hidden"); const p = cur; if (!p || call) return;
-  const st = await getMedia(video); if (!st) return;
-  newCall(p, st, "caller", video); $("clSt").textContent = "waiting…";
+  const [st] = await Promise.all([getMedia(video), getIce()]); if (!st) return;
+  newCall(p, st, "caller", st.getVideoTracks().length > 0); $("clSt").textContent = "waiting…"; ring("out");
   call.ring = setTimeout(() => endCall("No answer"), 45000);
   sendSig(p.uid, { type: "invite", video });
 }
 function newCall(peer, stream, role, video) {
-  const pc = new RTCPeerConnection(ICE);
-  call = { peer, pc, local: stream, role, remote: null, pend: [], negOK: false, camOn: video, remoteCam: true, micOn: true, t0: 0, vsender: null, sharing: false, screen: null };
+  const pc = new RTCPeerConnection(ICEC || ICE);
+  call = { peer, pc, local: stream, role, remote: null, pend: [], negOK: false, camOn: video, remoteCam: true, micOn: true, t0: 0, vsender: null, sharing: false, screen: null, facing: "user" };
   stream.getTracks().forEach(t => { const sd = pc.addTrack(t, stream); if (t.kind == "video") call.vsender = sd; });
   pc.onicecandidate = e => { if (e.candidate) sendSig(peer.uid, { type: "ice", c: e.candidate }); };
   pc.ontrack = e => {
     if (!call) return; call.remote = e.streams[0] || new MediaStream([e.track]);
     $("rv").srcObject = call.remote; $("rv").play().catch(() => {}); e.track.onunmute = e.track.onended = updRemote; updRemote();
   };
-  pc.onconnectionstatechange = () => { if (!call) return; if (pc.connectionState == "connected" && !call.t0) startTimer(); if (pc.connectionState == "failed") endCall("Connection failed"); };
+  pc.onconnectionstatechange = () => { if (!call) return; if (pc.connectionState == "connected" && !call.t0) startTimer(); if (pc.connectionState == "failed") endCall("Connection failed"); if (pc.connectionState == "disconnected") { if (call.role == "caller" && pc.restartIce) pc.restartIce(); clearTimeout(call.dc); call.dc = setTimeout(() => { if (call && call.pc === pc && pc.connectionState != "connected") endCall("Connection lost"); }, 8000); } };
   pc.onnegotiationneeded = async () => {
     if (!call || !call.negOK) return;
     await pc.setLocalDescription(await pc.createOffer()); sendSig(peer.uid, { type: "offer", d: pc.localDescription });
   };
   $("lv").srcObject = stream; $("lv").classList.toggle("vh", !video);
-  $("cCam").textContent = video ? "🎥" : "🚫"; $("cCam").className = video ? "dk" : "";
-  $("cMic").textContent = "🎤"; $("cMic").className = "dk"; $("cShare").className = "";
+  $("cCam").className = video ? "on" : "sl";
+  $("cMic").className = ""; $("cShare").className = "";
+  $("call").classList.remove("swap", "mini"); $("callBar").classList.add("hidden"); $("lv").classList.add("mir");
   setAv($("clAv"), peer); $("clNm").textContent = peer.name; $("rv").classList.add("vh"); $("cInfo").classList.remove("vh");
   $("call").classList.remove("hidden");
 }
 function startTimer() {
-  call.t0 = Date.now();
-  const tick = () => { if (!call) return; const t = Math.floor((Date.now() - call.t0) / 1000); $("clSt").textContent = String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); };
+  ring(null); call.t0 = Date.now();
+  const tick = () => { if (!call) return; const t = Math.floor((Date.now() - call.t0) / 1000), tx = Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); $("clSt").textContent = tx; $("callBar").textContent = "Tap to return to call · " + tx; };
   tick(); callTick = setInterval(tick, 1000);
 }
 function updRemote() {
@@ -925,20 +1002,24 @@ function updRemote() {
   const v = !!call.remote && call.remote.getVideoTracks().some(t => t.readyState == "live" && !t.muted) && call.remoteCam !== false;
   $("rv").classList.toggle("vh", !v); $("cInfo").classList.toggle("vh", v);
 }
-function dismissInc() { clearTimeout(incT); incoming = null; $("inc").classList.add("hidden"); }
+function dismissInc() { ring(null); clearTimeout(incT); incoming = null; $("inc").classList.add("hidden"); }
 function endCall(reason, notify = true) {
-  if (!call) return; const c = call; call = null; clearTimeout(c.ring); clearInterval(callTick);
+  if (!call) return; ring(null); const c = call; call = null; clearTimeout(c.ring); clearInterval(callTick);
   if (notify) sendSig(c.peer.uid, { type: "end" });
   c.local.getTracks().forEach(t => t.stop()); if (c.screen) c.screen.getTracks().forEach(t => t.stop());
-  c.pc.close(); $("rv").srcObject = null; $("lv").srcObject = null; $("call").classList.add("hidden"); if (reason) toast(reason);
+  c.pc.close(); $("rv").srcObject = null; $("lv").srcObject = null; $("call").classList.add("hidden"); $("call").classList.remove("swap", "mini"); $("callBar").classList.add("hidden"); if (reason) toast(reason);
 }
 async function onSig(m) {
   if (!me || !m) return;
   if (m.type == "invite") {
     const p = peerOf(m.from); if (!p) return;
+    // both people pressed call at the same time: one side keeps calling, the other answers
+    if (call && call.peer.uid == m.from && call.role == "caller" && !call.t0) { if (me.uid > m.from) endCall("", false); else return; }
     if (call || incoming) { sendSig(m.from, { type: "busy" }); return; }
     incoming = { p, video: m.video }; setAv($("icAv"), p); $("icNm").textContent = p.name;
     $("icSt").textContent = "Incoming " + (m.video ? "video" : "voice") + " call…"; $("inc").classList.remove("hidden");
+    sendSig(m.from, { type: "ringing" }); ring("in");
+    try { if (document.hidden && "Notification" in window && Notification.permission == "granted") new Notification(p.name + " is calling…", { body: "Incoming " + (m.video ? "video" : "voice") + " call" }); } catch (e) {}
     incT = setTimeout(dismissInc, 45000); return;
   }
   if (incoming && incoming.p.uid == m.from && m.type == "end") { const n = incoming.p.name; dismissInc(); toast("Missed call from " + n); return; }
@@ -946,7 +1027,8 @@ async function onSig(m) {
   const pc = call.pc, to = call.peer.uid;
   const flush = () => call.pend.splice(0).forEach(c => pc.addIceCandidate(c).catch(() => {}));
   try {
-    if (m.type == "accept") { clearTimeout(call.ring); $("clSt").textContent = "connecting…"; await pc.setLocalDescription(await pc.createOffer()); sendSig(to, { type: "offer", d: pc.localDescription }); }
+    if (m.type == "accept") { ring(null); clearTimeout(call.ring); $("clSt").textContent = "connecting…"; await pc.setLocalDescription(await pc.createOffer()); sendSig(to, { type: "offer", d: pc.localDescription }); }
+    else if (m.type == "ringing") { if (!call.t0) $("clSt").textContent = "ringing…"; }
     else if (m.type == "reject") endCall(call.peer.name + " declined the call", false);
     else if (m.type == "busy") endCall(call.peer.name + " is busy", false);
     else if (m.type == "end") endCall("Call ended", false);
@@ -958,14 +1040,31 @@ async function onSig(m) {
 }
 $("icYes").onclick = async () => {
   const { p, video } = incoming; dismissInc();
-  const st = await getMedia(video); if (!st) { sendSig(p.uid, { type: "reject" }); return; }
-  newCall(p, st, "callee", video); $("clSt").textContent = "connecting…"; sendSig(p.uid, { type: "accept" });
+  const [st] = await Promise.all([getMedia(video), getIce()]); if (!st) { sendSig(p.uid, { type: "reject" }); return; }
+  newCall(p, st, "callee", st.getVideoTracks().length > 0); $("clSt").textContent = "connecting…"; sendSig(p.uid, { type: "accept" });
 };
 $("icNo").onclick = () => { const p = incoming.p; dismissInc(); sendSig(p.uid, { type: "reject" }); };
 $("cEnd").onclick = () => endCall("Call ended");
+$("lv").onclick = () => { if (call && !$("call").classList.contains("swap")) $("call").classList.add("swap"); };   // tap small self view -> self full screen
+$("rv").onclick = () => { if (call && $("call").classList.contains("swap")) $("call").classList.remove("swap"); }; // tap small other view -> other full screen
+$("cBack").onclick = () => { if (call) { $("call").classList.add("mini"); $("callBar").classList.remove("hidden"); } };
+$("callBar").onclick = () => { $("call").classList.remove("mini"); $("callBar").classList.add("hidden"); };
+$("cFlip").onclick = async () => {
+  if (!call || call.sharing) return;
+  const old = call.local.getVideoTracks()[0]; if (!old) return toast("Turn on the camera first");
+  const next = call.facing == "environment" ? "user" : "environment", wasOn = old.enabled;
+  const get = f => navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: f }, width: { ideal: 1280 }, height: { ideal: 720 } } });
+  old.stop();
+  let ns, used = next;
+  try { ns = await get(next); } catch (e) { try { used = call.facing; ns = await get(used); } catch (e2) { return toast("Can't switch camera on this device"); } }
+  const nt = ns.getVideoTracks()[0]; nt.enabled = wasOn;
+  try { if (call.vsender) await call.vsender.replaceTrack(nt); } catch (e) {}
+  call.local.removeTrack(old); call.local.addTrack(nt); call.facing = used;
+  $("lv").srcObject = call.local; $("lv").classList.toggle("mir", used == "user");
+};
 $("cMic").onclick = () => {
   if (!call) return; call.micOn = !call.micOn; call.local.getAudioTracks().forEach(t => t.enabled = call.micOn);
-  $("cMic").textContent = call.micOn ? "🎤" : "🔇"; $("cMic").className = call.micOn ? "dk" : "";
+  $("cMic").className = call.micOn ? "" : "on sl";
 };
 $("cCam").onclick = async () => {
   if (!call || call.sharing) return;
@@ -974,7 +1073,7 @@ $("cCam").onclick = async () => {
     try { vt = (await navigator.mediaDevices.getUserMedia({ video: true })).getVideoTracks()[0]; } catch (e) { return toast("Camera not available"); }
     call.local.addTrack(vt); call.vsender = call.pc.addTrack(vt, call.local); call.camOn = true;
   } else { vt.enabled = !vt.enabled; call.camOn = vt.enabled; }
-  $("cCam").textContent = call.camOn ? "🎥" : "🚫"; $("cCam").className = call.camOn ? "dk" : "";
+  $("cCam").className = call.camOn ? "on" : "sl";
   $("lv").classList.toggle("vh", !call.camOn); sendSig(call.peer.uid, { type: "cam", on: call.camOn });
 };
 $("cShare").onclick = async () => {
@@ -984,7 +1083,7 @@ $("cShare").onclick = async () => {
     const ds = await navigator.mediaDevices.getDisplayMedia({ video: true }), t = ds.getVideoTracks()[0];
     call.screen = ds; call.sharing = true;
     if (call.vsender) await call.vsender.replaceTrack(t); else call.vsender = call.pc.addTrack(t, call.local);
-    sendSig(call.peer.uid, { type: "cam", on: true }); $("lv").classList.add("vh"); $("cShare").className = "bl"; t.onended = stopShare;
+    sendSig(call.peer.uid, { type: "cam", on: true }); $("lv").classList.add("vh"); $("cShare").className = "on"; t.onended = stopShare;
   } catch (e) {}
 };
 async function stopShare() {
@@ -994,6 +1093,26 @@ async function stopShare() {
   if (call.vsender) await call.vsender.replaceTrack(vt || null).catch(() => {});
   const on = !!(vt && vt.enabled); sendSig(call.peer.uid, { type: "cam", on }); $("lv").classList.toggle("vh", !on); $("cShare").className = "";
 }
+
+/* ---- ask for camera + microphone permission ---- */
+async function askPerms() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+  const q = await Promise.all(["camera", "microphone"].map(n => navigator.permissions ? navigator.permissions.query({ name: n }).then(r => r.state).catch(() => "unknown") : "unknown"));
+  if (q.every(x => x == "granted") || q.some(x => x == "denied")) return;
+  let asked = false; try { asked = sessionStorage.getItem("rc_perm_asked") == "1"; sessionStorage.setItem("rc_perm_asked", "1"); } catch (e) {}
+  if (asked) return;
+  $("perm").classList.remove("hidden");
+}
+$("permNo").onclick = () => $("perm").classList.add("hidden");
+$("permOk").onclick = async () => {
+  $("perm").classList.add("hidden"); let st = null;
+  try { st = await navigator.mediaDevices.getUserMedia({ audio: true, video: true }); }
+  catch (e) { try { st = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e2) { return toast("Blocked. Allow camera & microphone in your browser settings."); } }
+  st.getTracks().forEach(t => t.stop());
+  try { localStorage.setItem("rc_perm", "1"); } catch (e) {}
+  if ("Notification" in window && Notification.permission == "default") Notification.requestPermission();
+  toast("Camera & microphone allowed ✓");
+};
 
 /* ---- typing indicator (realtime broadcast, no database) ---- */
 function joinTyping() {
