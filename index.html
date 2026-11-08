@@ -201,6 +201,9 @@ body{font-family:'Nunito',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;bac
 #call .cb button.sl::after{content:"";position:absolute;left:50%;top:50%;width:34px;height:3px;border-radius:2px;background:currentColor;transform:translate(-50%,-50%) rotate(-45deg)}
 #cc .cb button,#inc .cb button{font-size:1.3rem}
 @media (pointer:coarse){#cShareW{display:none}}
+.rt{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
+.bd{font-style:normal;font-weight:800;font-size:.75rem;background:var(--green);color:#fff;min-width:22px;height:22px;padding:0 7px;border-radius:999px;display:grid;place-items:center}
+.ci.un small{color:var(--text);font-weight:800}.ci.un time{color:var(--green);font-weight:800}
 #addBar{display:flex;align-items:center;gap:10px;background:var(--card);padding:8px 14px;border-bottom:1px solid var(--line);font-size:.88rem;font-weight:700}
 #addBar span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #addBar button{border:0;border-radius:999px;padding:8px 14px;background:var(--green);color:#fff;font:800 .82rem 'Nunito',sans-serif;cursor:pointer;flex:none}
@@ -550,7 +553,7 @@ $("forgot").onclick = async () => {
 
 /* ================= Chat app (Supabase) ================= */
 let me = null, myP = null, contacts = [], last = {}, cur = null, msgs = [];
-let strangers = [];
+let strangers = [], unread = {}, msgCache = {};
 const chatPeers = () => [...contacts, ...strangers];
 const rmSet = () => { try { return new Set(JSON.parse(localStorage.getItem("rc_rm") || "[]")); } catch (e) { return new Set(); } };
 const rmSave = x => { try { localStorage.setItem("rc_rm", JSON.stringify([...x])); } catch (e) {} };
@@ -596,16 +599,18 @@ async function startApp(user) {
 }
 function stopApp() {
   endCall("", false); dismissInc(); if (inbox) sb.removeChannel(inbox); inbox = null; Object.values(outCh).forEach(c => sb.removeChannel(c)); outCh = {};
-  clearInterval(hb); if (tch) sb.removeChannel(tch); tch = null; me = null; myP = null; cur = null; contacts = []; last = {}; msgs = [];
+  clearInterval(hb); if (tch) sb.removeChannel(tch); tch = null; me = null; myP = null; cur = null; contacts = []; last = {}; msgs = []; unread = {}; msgCache = {}; strangers = [];
   if (chan && sb) sb.removeChannel(chan); chan = null;
   $("room").classList.add("hidden"); $("empty").classList.remove("hidden"); $("app").classList.remove("chatting");
 }
 
 async function loadContacts() {
-  const [{ data: c }, { data: m }] = await Promise.all([
+  const [{ data: c }, { data: m }, { data: ur }] = await Promise.all([
     sb.from("contacts").select("contact").eq("owner", me.uid),
-    sb.from("messages").select("*").or(`sender.eq.${me.uid},receiver.eq.${me.uid}`).order("created_at", { ascending: false }).limit(300)
+    sb.from("messages").select("*").or(`sender.eq.${me.uid},receiver.eq.${me.uid}`).order("created_at", { ascending: false }).limit(300),
+    sb.from("messages").select("sender").eq("receiver", me.uid).eq("read", false).limit(2000)
   ]);
+  unread = {}; (ur || []).forEach(x => unread[x.sender] = (unread[x.sender] || 0) + 1);
   const ids = (c || []).map(x => x.contact);
   const rm = rmSet(), sIds = [...new Set((m || []).filter(x => x.receiver == me.uid && !ids.includes(x.sender) && !rm.has(x.sender)).map(x => x.sender))];
   const [cp, sp] = await Promise.all([
@@ -624,8 +629,8 @@ function renderList() {
     .sort((a, b) => new Date(last[b.uid]?.created_at || 0) - new Date(last[a.uid]?.created_at || 0));
   if (!arr.length) { L.innerHTML = '<p class="hint">No contacts yet.<br>Open ☰ Settings → Add contact<br>and enter a username.</p>'; return; }
   arr.forEach(p => {
-    const d = document.createElement("div"); d.className = "ci" + (cur?.uid == p.uid ? " on" : "");
-    d.innerHTML = '<div class="avatar"></div><div class="mid"><b>' + esc(p.name) + "</b><small>" + esc(preview(last[p.uid])) + "</small></div><time>" + (last[p.uid] ? fmtT(last[p.uid].created_at) : "") + "</time>";
+    const d = document.createElement("div"); d.className = "ci" + (cur?.uid == p.uid ? " on" : "") + (unread[p.uid] > 0 ? " un" : "");
+    d.innerHTML = '<div class="avatar"></div><div class="mid"><b>' + esc(p.name) + "</b><small>" + esc(preview(last[p.uid])) + "</small></div><div class=\"rt\"><time>" + (last[p.uid] ? fmtT(last[p.uid].created_at) : "") + "</time>" + (unread[p.uid] > 0 ? '<i class="bd">' + unread[p.uid] + "</i>" : "") + "</div>";
     setAv(d.firstChild, p); d.onclick = () => openChat(p); L.appendChild(d);
   });
 }
@@ -636,8 +641,10 @@ async function openChat(p) {
   cur = p; replyTo = editing = null; selMode = false; selected.clear(); $("txt").value = "";
   $("app").classList.add("chatting"); $("empty").classList.add("hidden"); $("room").classList.remove("hidden");
   typing = false; setAv($("cAv"), p); $("cName").textContent = p.name; $("cUser").textContent = seenText(p); joinTyping(); updAddBar();
+  msgs = msgCache[p.uid] || []; renderMsgs(true); renderList(); markRead();   // show this chat at once (no old chat left on screen)
   const a = me.uid, b = p.uid;
   const { data } = await sb.from("messages").select("*").or(`and(sender.eq.${a},receiver.eq.${b}),and(sender.eq.${b},receiver.eq.${a})`).order("created_at", { ascending: false }).limit(150);
+  if (!cur || cur.uid != p.uid) return;   // user already moved to another chat
   msgs = (data || []).reverse(); renderMsgs(true); renderList(); markRead();
 }
 
@@ -650,6 +657,7 @@ function onRT(e) {
     if (m.sender == cur.uid && typing) { typing = false; clearTimeout(tTimer); $("cUser").textContent = seenText(cur); }
   }
   const p = m.sender == me.uid ? m.receiver : m.sender;
+  if (e.eventType == "INSERT" && m.sender != me.uid && !(cur && cur.uid == p && !document.hidden)) unread[p] = (unread[p] || 0) + 1;
   if (e.eventType == "INSERT" && m.sender != me.uid && !peerOf(p)) {
     const rs = rmSet(); rs.delete(p); rmSave(rs);
     sb.from("profiles").select("*").eq("uid", p).maybeSingle().then(({ data }) => {
@@ -665,6 +673,7 @@ async function ins(row) {
 }
 
 function renderMsgs(sc) {
+  if (cur) msgCache[cur.uid] = msgs;
   const C = $("chat"), keep = C.scrollHeight - C.scrollTop - C.clientHeight < 80; C.innerHTML = ""; const frag = document.createDocumentFragment();
   msgs.filter(m => !(m.hidden_for || []).includes(me.uid)).forEach(m => {
     const mine = m.sender == me.uid, d = document.createElement("div");
@@ -1187,8 +1196,9 @@ $("txt").addEventListener("input", () => {
 /* ---- read receipts, online status, profile view, contact manager ---- */
 async function markRead() {
   if (!cur || document.hidden) return;
-  const ids = msgs.filter(m => m.sender == cur.uid && m.receiver == me.uid && !m.read).map(m => m.id);
-  if (ids.length) await sb.from("messages").update({ read: true }).in("id", ids);
+  const uid = cur.uid, had = !!unread[uid], ids = msgs.filter(m => m.sender == uid && m.receiver == me.uid && !m.read).map(m => m.id);
+  if (had) { unread[uid] = 0; renderList(); }
+  if (ids.length || had) await sb.from("messages").update({ read: true }).eq("receiver", me.uid).eq("sender", uid).eq("read", false);
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { markRead(); beat(); } });
 async function beat() {
